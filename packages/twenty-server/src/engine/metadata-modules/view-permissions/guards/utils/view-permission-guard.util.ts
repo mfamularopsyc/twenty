@@ -1,6 +1,8 @@
 import { type ExecutionContext } from '@nestjs/common';
 import { type GqlContextType, GqlExecutionContext } from '@nestjs/graphql';
 
+import { ViewVisibility } from 'twenty-shared/types';
+
 import { type ViewAccessService } from 'src/engine/metadata-modules/view-permissions/services/view-access.service';
 import { type ViewEntityLookupService } from 'src/engine/metadata-modules/view-permissions/services/view-entity-lookup.service';
 import { type ViewChildEntityKind } from 'src/engine/metadata-modules/view-permissions/types/view-permissions.types';
@@ -28,7 +30,7 @@ const addStringToSet = (values: Set<string>, value: unknown) => {
 const addInputStringToSet = (
   values: Set<string>,
   input: unknown,
-  key: 'id' | 'viewId',
+  key: 'id' | 'viewId' | 'widgetId',
 ) => {
   if (
     typeof input === 'object' &&
@@ -43,7 +45,7 @@ const addInputStringToSet = (
 const addInputArrayStringsToSet = (
   values: Set<string>,
   inputs: unknown,
-  key: 'id' | 'viewId',
+  key: 'id' | 'viewId' | 'widgetId',
 ) => {
   if (!Array.isArray(inputs)) {
     return;
@@ -87,6 +89,61 @@ export const extractViewIdsFromArgsAndRequest = ({
   return [...viewIds];
 };
 
+export const extractViewIdFromArgsAndRequest = ({
+  args,
+  request,
+}: {
+  args: ViewPermissionGuardArgs;
+  request: ViewPermissionGuardRequest;
+}) => {
+  const viewIds = new Set<string>();
+
+  addStringToSet(viewIds, args.id);
+  addInputStringToSet(viewIds, args.input, 'id');
+  addStringToSet(viewIds, request.params?.id);
+  addStringToSet(viewIds, request.body?.id);
+  addInputStringToSet(viewIds, request.body?.input, 'id');
+
+  return [...viewIds][0] ?? null;
+};
+
+export const extractCreateViewPermissionInputFromArgsAndRequest = ({
+  args,
+  request,
+}: {
+  args: ViewPermissionGuardArgs;
+  request: ViewPermissionGuardRequest;
+}) => {
+  const input = isRecord(args.input) ? args.input : request.body;
+
+  return {
+    visibility:
+      typeof input?.visibility === 'string'
+        ? (input.visibility as ViewVisibility)
+        : ViewVisibility.WORKSPACE,
+    isLocked: typeof input?.isLocked === 'boolean' ? input.isLocked : false,
+  };
+};
+
+export const extractIsLockUpdateRequestedFromArgsAndRequest = ({
+  args,
+  request,
+}: {
+  args: ViewPermissionGuardArgs;
+  request: ViewPermissionGuardRequest;
+}) => {
+  const argsInput = isRecord(args.input) ? args.input : undefined;
+  const requestBodyInput = isRecord(request.body?.input)
+    ? request.body.input
+    : undefined;
+
+  return (
+    typeof argsInput?.isLocked === 'boolean' ||
+    typeof request.body?.isLocked === 'boolean' ||
+    typeof requestBodyInput?.isLocked === 'boolean'
+  );
+};
+
 export const extractEntityIdsFromArgsAndRequest = ({
   args,
   request,
@@ -105,6 +162,22 @@ export const extractEntityIdsFromArgsAndRequest = ({
   addInputArrayStringsToSet(entityIds, request.body?.inputs, 'id');
 
   return [...entityIds];
+};
+
+export const extractWidgetIdFromArgsAndRequest = ({
+  args,
+  request,
+}: {
+  args: ViewPermissionGuardArgs;
+  request: ViewPermissionGuardRequest;
+}) => {
+  const widgetIds = new Set<string>();
+
+  addInputStringToSet(widgetIds, args.input, 'widgetId');
+  addStringToSet(widgetIds, request.body?.widgetId);
+  addInputStringToSet(widgetIds, request.body?.input, 'widgetId');
+
+  return [...widgetIds][0] ?? null;
 };
 
 export const authorizeViewIdsByChildEntity = async ({

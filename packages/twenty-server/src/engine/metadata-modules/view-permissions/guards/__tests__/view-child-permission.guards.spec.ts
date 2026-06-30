@@ -8,8 +8,22 @@ import { CreateViewFieldPermissionGuard } from 'src/engine/metadata-modules/view
 import { CreateViewFilterGroupPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/create-view-filter-group-permission.guard';
 import { CreateViewGroupPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/create-view-group-permission.guard';
 import { CreateViewSortPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/create-view-sort-permission.guard';
+import { DeleteViewFieldGroupPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/delete-view-field-group-permission.guard';
+import { DeleteViewFieldPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/delete-view-field-permission.guard';
+import { DeleteViewFilterGroupPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/delete-view-filter-group-permission.guard';
+import { DeleteViewFilterPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/delete-view-filter-permission.guard';
+import { DeleteViewGroupPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/delete-view-group-permission.guard';
 import { DeleteViewSortPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/delete-view-sort-permission.guard';
+import { DestroyViewFieldGroupPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/destroy-view-field-group-permission.guard';
+import { DestroyViewFieldPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/destroy-view-field-permission.guard';
+import { DestroyViewFilterGroupPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/destroy-view-filter-group-permission.guard';
+import { DestroyViewFilterPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/destroy-view-filter-permission.guard';
+import { DestroyViewGroupPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/destroy-view-group-permission.guard';
 import { DestroyViewSortPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/destroy-view-sort-permission.guard';
+import { UpdateViewFieldGroupPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/update-view-field-group-permission.guard';
+import { UpdateViewFieldPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/update-view-field-permission.guard';
+import { UpdateViewFilterGroupPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/update-view-filter-group-permission.guard';
+import { UpdateViewFilterPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/update-view-filter-permission.guard';
 import { UpdateViewGroupPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/update-view-group-permission.guard';
 import { UpdateViewSortPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/update-view-sort-permission.guard';
 import { UpsertFieldsWidgetPermissionGuard } from 'src/engine/metadata-modules/view-permissions/guards/upsert-fields-widget-permission.guard';
@@ -276,6 +290,211 @@ describe('view child permission guards', () => {
     });
   });
 
+  describe.each([
+    [
+      'updateViewField',
+      'viewField',
+      () =>
+        new UpdateViewFieldPermissionGuard(
+          viewAccessService as unknown as ViewAccessService,
+          viewEntityLookupService as unknown as ViewEntityLookupService,
+        ),
+    ],
+    [
+      'deleteViewField',
+      'viewField',
+      () =>
+        new DeleteViewFieldPermissionGuard(
+          viewAccessService as unknown as ViewAccessService,
+          viewEntityLookupService as unknown as ViewEntityLookupService,
+        ),
+    ],
+    [
+      'destroyViewField',
+      'viewField',
+      () =>
+        new DestroyViewFieldPermissionGuard(
+          viewAccessService as unknown as ViewAccessService,
+          viewEntityLookupService as unknown as ViewEntityLookupService,
+        ),
+    ],
+    [
+      'updateViewFieldGroup',
+      'viewFieldGroup',
+      () =>
+        new UpdateViewFieldGroupPermissionGuard(
+          viewAccessService as unknown as ViewAccessService,
+          viewEntityLookupService as unknown as ViewEntityLookupService,
+        ),
+    ],
+    [
+      'deleteViewFieldGroup',
+      'viewFieldGroup',
+      () =>
+        new DeleteViewFieldGroupPermissionGuard(
+          viewAccessService as unknown as ViewAccessService,
+          viewEntityLookupService as unknown as ViewEntityLookupService,
+        ),
+    ],
+    [
+      'destroyViewFieldGroup',
+      'viewFieldGroup',
+      () =>
+        new DestroyViewFieldGroupPermissionGuard(
+          viewAccessService as unknown as ViewAccessService,
+          viewEntityLookupService as unknown as ViewEntityLookupService,
+        ),
+    ],
+    [
+      'updateViewFilter',
+      'viewFilter',
+      () =>
+        new UpdateViewFilterPermissionGuard(
+          viewAccessService as unknown as ViewAccessService,
+          viewEntityLookupService as unknown as ViewEntityLookupService,
+        ),
+    ],
+    [
+      'deleteViewFilter',
+      'viewFilter',
+      () =>
+        new DeleteViewFilterPermissionGuard(
+          viewAccessService as unknown as ViewAccessService,
+          viewEntityLookupService as unknown as ViewEntityLookupService,
+        ),
+    ],
+    [
+      'destroyViewFilter',
+      'viewFilter',
+      () =>
+        new DestroyViewFilterPermissionGuard(
+          viewAccessService as unknown as ViewAccessService,
+          viewEntityLookupService as unknown as ViewEntityLookupService,
+        ),
+    ],
+    [
+      'updateViewFilterGroup',
+      'viewFilterGroup',
+      () =>
+        new UpdateViewFilterGroupPermissionGuard(
+          viewAccessService as unknown as ViewAccessService,
+          viewEntityLookupService as unknown as ViewEntityLookupService,
+        ),
+    ],
+    [
+      'deleteViewFilterGroup',
+      'viewFilterGroup',
+      () =>
+        new DeleteViewFilterGroupPermissionGuard(
+          viewAccessService as unknown as ViewAccessService,
+          viewEntityLookupService as unknown as ViewEntityLookupService,
+        ),
+    ],
+    [
+      'destroyViewFilterGroup',
+      'viewFilterGroup',
+      () =>
+        new DestroyViewFilterGroupPermissionGuard(
+          viewAccessService as unknown as ViewAccessService,
+          viewEntityLookupService as unknown as ViewEntityLookupService,
+        ),
+    ],
+    [
+      'deleteViewGroup',
+      'viewGroup',
+      () =>
+        new DeleteViewGroupPermissionGuard(
+          viewAccessService as unknown as ViewAccessService,
+          viewEntityLookupService as unknown as ViewEntityLookupService,
+        ),
+    ],
+    [
+      'destroyViewGroup',
+      'viewGroup',
+      () =>
+        new DestroyViewGroupPermissionGuard(
+          viewAccessService as unknown as ViewAccessService,
+          viewEntityLookupService as unknown as ViewEntityLookupService,
+        ),
+    ],
+  ])('%s with REST params.id', (_, kind, buildGuard) => {
+    beforeEach(() => {
+      viewEntityLookupService.findViewIdByEntityIdAndKind.mockResolvedValue(
+        lockedViewId,
+      );
+    });
+
+    it('rejects regular users when the REST target belongs to a locked view', async () => {
+      const gqlExecutionContextCreateSpy = jest.spyOn(
+        GqlExecutionContext,
+        'create',
+      );
+
+      await expect(
+        buildGuard().canActivate(
+          mockHttpExecutionContext({ params: { id: lockedEntityId } }),
+        ),
+      ).rejects.toMatchObject({
+        code: ViewExceptionCode.VIEW_LOCKED_PERMISSION_DENIED,
+      });
+
+      expect(gqlExecutionContextCreateSpy).not.toHaveBeenCalled();
+      expect(
+        viewEntityLookupService.findViewIdByEntityIdAndKind,
+      ).toHaveBeenCalledWith(kind, lockedEntityId, workspaceId);
+      expect(
+        viewAccessService.canUserModifyViewByChildEntity,
+      ).toHaveBeenCalledWith(
+        lockedViewId,
+        userWorkspaceId,
+        workspaceId,
+        undefined,
+      );
+    });
+
+    it('allows users with VIEWS permission when the REST target belongs to a locked view', async () => {
+      viewAccessService.canUserModifyViewByChildEntity.mockResolvedValue(true);
+
+      await expect(
+        buildGuard().canActivate(
+          mockHttpExecutionContext({ params: { id: lockedEntityId } }),
+        ),
+      ).resolves.toBe(true);
+
+      expect(
+        viewEntityLookupService.findViewIdByEntityIdAndKind,
+      ).toHaveBeenCalledWith(kind, lockedEntityId, workspaceId);
+      expect(
+        viewAccessService.canUserModifyViewByChildEntity,
+      ).toHaveBeenCalledWith(
+        lockedViewId,
+        userWorkspaceId,
+        workspaceId,
+        undefined,
+      );
+    });
+  });
+
+  it('extracts child entity id from REST request body when URL params are absent', async () => {
+    viewEntityLookupService.findViewIdByEntityIdAndKind.mockResolvedValue(
+      lockedViewId,
+    );
+
+    await expect(
+      new UpdateViewFieldPermissionGuard(
+        viewAccessService as unknown as ViewAccessService,
+        viewEntityLookupService as unknown as ViewEntityLookupService,
+      ).canActivate(mockHttpExecutionContext({ body: { id: lockedEntityId } })),
+    ).rejects.toMatchObject({
+      code: ViewExceptionCode.VIEW_LOCKED_PERMISSION_DENIED,
+    });
+
+    expect(
+      viewEntityLookupService.findViewIdByEntityIdAndKind,
+    ).toHaveBeenCalledWith('viewField', lockedEntityId, workspaceId);
+    expect(viewAccessService.canUserModifyViewByChildEntity).toHaveBeenCalled();
+  });
+
   describe('upsertFieldsWidget', () => {
     const buildGuard = () =>
       new UpsertFieldsWidgetPermissionGuard(
@@ -315,6 +534,29 @@ describe('view child permission guards', () => {
         code: ViewExceptionCode.VIEW_LOCKED_PERMISSION_DENIED,
       });
 
+      expect(
+        viewAccessService.canUserModifyViewByChildEntity,
+      ).toHaveBeenCalledWith(
+        lockedViewId,
+        userWorkspaceId,
+        workspaceId,
+        undefined,
+      );
+    });
+
+    it('rejects regular users by extracting widgetId from the REST request body', async () => {
+      const gqlExecutionContextCreateSpy = jest.spyOn(
+        GqlExecutionContext,
+        'create',
+      );
+
+      await expect(
+        buildGuard().canActivate(mockHttpExecutionContext({ body: { widgetId } })),
+      ).rejects.toMatchObject({
+        code: ViewExceptionCode.VIEW_LOCKED_PERMISSION_DENIED,
+      });
+
+      expect(gqlExecutionContextCreateSpy).not.toHaveBeenCalled();
       expect(
         viewAccessService.canUserModifyViewByChildEntity,
       ).toHaveBeenCalledWith(
