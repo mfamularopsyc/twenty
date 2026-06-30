@@ -26,6 +26,7 @@ export const buildRecordTableWidgetViewSnapshot = (
     objectMetadataId: objectMetadataItem.id,
     type: ViewType.TABLE_WIDGET,
     isCompact: false,
+    isLocked: false,
     position: 0,
     openRecordIn: ViewOpenRecordIn.RECORD_PAGE,
     visibility: ViewVisibility.WORKSPACE,

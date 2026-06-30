@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 
-import { t } from '@lingui/core/macro';
+import { msg, t } from '@lingui/core/macro';
+import { PermissionFlagType } from 'twenty-shared/constants';
 import {
   ViewFilterGroupLogicalOperator,
   ViewFilterOperand,
   ViewSortDirection,
 } from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
+import { WorkspaceActivationStatus } from 'twenty-shared/workspace';
 import { IsNull } from 'typeorm';
 import { v4 } from 'uuid';
 
@@ -30,6 +32,12 @@ import { getDefaultViewFilterOperand } from 'src/engine/metadata-modules/flat-vi
 import { type FlatViewSort } from 'src/engine/metadata-modules/flat-view-sort/types/flat-view-sort.type';
 import { type FlatViewMaps } from 'src/engine/metadata-modules/flat-view/types/flat-view-maps.type';
 import { WidgetConfigurationType } from 'src/engine/metadata-modules/page-layout-widget/enums/widget-configuration-type.type';
+import {
+  PermissionsException,
+  PermissionsExceptionCode,
+  PermissionsExceptionMessage,
+} from 'src/engine/metadata-modules/permissions/permissions.exception';
+import { PermissionsService } from 'src/engine/metadata-modules/permissions/permissions.service';
 import { isCallerOverridingEntity } from 'src/engine/metadata-modules/utils/is-caller-overriding-entity.util';
 import { sanitizeOverridableEntityInput } from 'src/engine/metadata-modules/utils/sanitize-overridable-entity-input.util';
 import { type UpsertViewWidgetViewFieldInput } from 'src/engine/metadata-modules/view/dtos/inputs/upsert-view-widget-view-field.input';
@@ -41,11 +49,21 @@ import { ViewEntity } from 'src/engine/metadata-modules/view/entities/view.entit
 import {
   ViewException,
   ViewExceptionCode,
+  ViewExceptionMessageKey,
+  generateViewExceptionMessage,
+  generateViewUserFriendlyExceptionMessage,
 } from 'src/engine/metadata-modules/view/exceptions/view.exception';
 import { InjectWorkspaceScopedRepository } from 'src/engine/twenty-orm/workspace-scoped-repository/inject-workspace-scoped-repository.decorator';
 import { WorkspaceScopedRepository } from 'src/engine/twenty-orm/workspace-scoped-repository/workspace-scoped-repository';
 import { WorkspaceMigrationBuilderException } from 'src/engine/workspace-manager/workspace-migration/exceptions/workspace-migration-builder-exception';
 import { WorkspaceMigrationValidateBuildAndRunService } from 'src/engine/workspace-manager/workspace-migration/services/workspace-migration-validate-build-and-run-service';
+
+type ViewWidgetUpsertAuthContext = {
+  userWorkspaceId?: string;
+  apiKeyId?: string;
+  applicationId?: string;
+  workspaceActivationStatus?: WorkspaceActivationStatus;
+};
 
 const EMPTY_FIELD_OPS = {
   fieldsToCreate: [] as FlatViewField[],
@@ -76,6 +94,7 @@ export class ViewWidgetUpsertService {
     private readonly workspaceMigrationValidateBuildAndRunService: WorkspaceMigrationValidateBuildAndRunService,
     private readonly workspaceManyOrAllFlatEntityMapsCacheService: WorkspaceManyOrAllFlatEntityMapsCacheService,
     private readonly applicationService: ApplicationService,
+    private readonly permissionsService: PermissionsService,
     @InjectWorkspaceScopedRepository(ViewEntity)
     private readonly viewRepository: WorkspaceScopedRepository<ViewEntity>,
   ) {}
@@ -83,9 +102,11 @@ export class ViewWidgetUpsertService {
   async upsertViewWidget({
     input,
     workspaceId,
+    authContext,
   }: {
     input: UpsertViewWidgetInput;
     workspaceId: string;
+    authContext: ViewWidgetUpsertAuthContext;
   }): Promise<ViewEntity> {
     const { widgetId } = input;
 
@@ -181,12 +202,20 @@ export class ViewWidgetUpsertService {
       now: new Date().toISOString(),
     };
 
-    if (
-      !isDefined(input.viewFields) &&
-      !isDefined(input.viewFilterGroups) &&
-      !isDefined(input.viewFilters) &&
-      !isDefined(input.viewSorts)
-    ) {
+    const hasViewWidgetChanges =
+      isDefined(input.viewFields) ||
+      isDefined(input.viewFilterGroups) ||
+      isDefined(input.viewFilters) ||
+      isDefined(input.viewSorts);
+
+    await this.assertCanUpsertViewWidget({
+      workspaceId,
+      authContext,
+      isLocked: flatView.isLocked,
+      hasViewWidgetChanges,
+    });
+
+    if (!hasViewWidgetChanges) {
       const view = await this.viewRepository.findOne(
         upsertContext.workspaceId,
         {
@@ -372,6 +401,68 @@ export class ViewWidgetUpsertService {
     }
 
     return view;
+  }
+
+  private async assertCanUpsertViewWidget({
+    workspaceId,
+    authContext,
+    isLocked,
+    hasViewWidgetChanges,
+  }: {
+    workspaceId: string;
+    authContext: ViewWidgetUpsertAuthContext;
+    isLocked: boolean;
+    hasViewWidgetChanges: boolean;
+  }): Promise<void> {
+    if (
+      isDefined(authContext.workspaceActivationStatus) &&
+      [
+        WorkspaceActivationStatus.PENDING_CREATION,
+        WorkspaceActivationStatus.ONGOING_CREATION,
+      ].includes(authContext.workspaceActivationStatus)
+    ) {
+      return;
+    }
+
+    const requiredPermission =
+      isLocked && hasViewWidgetChanges
+        ? PermissionFlagType.VIEWS
+        : PermissionFlagType.LAYOUTS;
+
+    const hasPermission =
+      await this.permissionsService.userHasWorkspaceSettingPermission({
+        workspaceId,
+        userWorkspaceId: authContext.userWorkspaceId,
+        apiKeyId: authContext.apiKeyId,
+        applicationId: authContext.applicationId,
+        setting: requiredPermission,
+      });
+
+    if (hasPermission === true) {
+      return;
+    }
+
+    if (requiredPermission === PermissionFlagType.VIEWS) {
+      throw new ViewException(
+        generateViewExceptionMessage(
+          ViewExceptionMessageKey.VIEW_LOCKED_PERMISSION_DENIED,
+        ),
+        ViewExceptionCode.VIEW_LOCKED_PERMISSION_DENIED,
+        {
+          userFriendlyMessage: generateViewUserFriendlyExceptionMessage(
+            ViewExceptionMessageKey.VIEW_LOCKED_PERMISSION_DENIED,
+          ),
+        },
+      );
+    }
+
+    throw new PermissionsException(
+      PermissionsExceptionMessage.PERMISSION_DENIED,
+      PermissionsExceptionCode.PERMISSION_DENIED,
+      {
+        userFriendlyMessage: msg`You do not have permission to access this feature. Please contact your workspace administrator for access.`,
+      },
+    );
   }
 
   private computeViewFieldOperations({

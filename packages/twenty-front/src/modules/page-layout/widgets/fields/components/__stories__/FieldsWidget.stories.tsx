@@ -197,6 +197,7 @@ const createView = (
   shouldHideEmptyGroups: false,
   position: 0,
   isCompact: false,
+  isLocked: false,
   openRecordIn: ViewOpenRecordIn.SIDE_PANEL,
   viewFields: [],
   viewGroups: [],

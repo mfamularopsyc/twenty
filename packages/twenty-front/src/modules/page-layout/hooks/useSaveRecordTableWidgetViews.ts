@@ -5,6 +5,7 @@ import { recordTableWidgetViewDraftComponentState } from '@/page-layout/states/r
 import { recordTableWidgetViewPersistedComponentState } from '@/page-layout/states/recordTableWidgetViewPersistedComponentState';
 import { getWidgetConfigurationViewId } from '@/page-layout/utils/getWidgetConfigurationViewId';
 import { widgetUsesRecordTableView } from '@/page-layout/utils/widgetUsesRecordTableView';
+import { useCanPersistViewChanges } from '@/views/hooks/useCanPersistViewChanges';
 import { useMutation } from '@apollo/client/react';
 import { useStore } from 'jotai';
 import { useCallback } from 'react';
@@ -23,11 +24,17 @@ export const useSaveRecordTableWidgetViews = () => {
   const { hasRecordTableWidgetViewChanges } =
     useHasRecordTableWidgetViewChanges();
 
+  const { canPersistChanges } = useCanPersistViewChanges();
+
   const store = useStore();
 
   const saveRecordTableWidgetViews = useCallback(
     async (pageLayoutId: string) => {
       if (!hasRecordTableWidgetViewChanges(pageLayoutId)) {
+        return;
+      }
+
+      if (!canPersistChanges) {
         return;
       }
 
@@ -107,7 +114,12 @@ export const useSaveRecordTableWidgetViews = () => {
         recordTableWidgetViewDraft,
       );
     },
-    [hasRecordTableWidgetViewChanges, store, upsertViewWidgetMutation],
+    [
+      canPersistChanges,
+      hasRecordTableWidgetViewChanges,
+      store,
+      upsertViewWidgetMutation,
+    ],
   );
 
   return { saveRecordTableWidgetViews };

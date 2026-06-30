@@ -77,7 +77,7 @@ export const ViewPickerOptionDropdown = ({
   // Users without VIEWS permission can only edit unlisted views (which are always their own, filtered by backend)
   const canEditView =
     hasViewsPermission ||
-    (view.visibility === ViewVisibility.UNLISTED && view.isLocked !== true);
+    (view.visibility === ViewVisibility.UNLISTED && view.isLocked === false);
   const canToggleLock =
     hasViewsPermission && view.visibility === ViewVisibility.WORKSPACE;
 
@@ -121,9 +121,11 @@ export const ViewPickerOptionDropdown = ({
   };
 
   const handleToggleLocked = async () => {
+    const nextIsLocked = view.isLocked === false;
+
     await performViewAPIUpdate({
       id: view.id,
-      input: { isLocked: view.isLocked !== true },
+      input: { isLocked: nextIsLocked },
     });
     closeDropdown(dropdownId);
   };

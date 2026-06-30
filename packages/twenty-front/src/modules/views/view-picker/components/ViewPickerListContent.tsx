@@ -129,7 +129,7 @@ export const ViewPickerListContent = () => {
         viewsReordered.map(async (view, index) => {
           if (
             view.position !== index &&
-            (view.isLocked !== true || hasViewsPermission)
+            (view.isLocked === false || hasViewsPermission)
           ) {
             await performViewAPIUpdate({
               id: view.id,

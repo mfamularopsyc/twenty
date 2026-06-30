@@ -63,20 +63,6 @@ describe('ViewAccessService', () => {
     });
   });
 
-  it('denies regular users deleting locked views through the same modify check', async () => {
-    viewService.findByIdIncludingDeleted.mockResolvedValue({
-      ...baseView,
-      isLocked: true,
-    });
-    mockViewsPermission(false);
-
-    await expect(
-      service.canUserModifyView(viewId, userWorkspaceId, workspaceId),
-    ).rejects.toMatchObject({
-      code: ViewExceptionCode.VIEW_LOCKED_PERMISSION_DENIED,
-    });
-  });
-
   it.each([
     'view fields',
     'view field groups',

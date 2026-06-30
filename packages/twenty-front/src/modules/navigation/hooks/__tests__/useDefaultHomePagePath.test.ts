@@ -140,6 +140,7 @@ const renderHooks = ({
               type: ViewType.TABLE,
               key: null,
               isCompact: false,
+              isLocked: false,
               openRecordIn: ViewOpenRecordIn.SIDE_PANEL,
               viewFields: [],
               viewFieldGroups: [],

@@ -11,7 +11,6 @@ export const convertUpdateViewInputToGql = (
     ...(view.icon && { icon: view.icon }),
     ...(isDefined(view.position) && { position: view.position }),
     ...(isDefined(view.isCompact) && { isCompact: view.isCompact }),
-    ...(isDefined(view.isLocked) && { isLocked: view.isLocked }),
     ...(isDefined(view.kanbanAggregateOperation) && {
       kanbanAggregateOperation: view.kanbanAggregateOperation,
     }),
