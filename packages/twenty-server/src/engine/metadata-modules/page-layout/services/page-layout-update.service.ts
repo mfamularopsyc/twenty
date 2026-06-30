@@ -34,7 +34,10 @@ import {
   PageLayoutExceptionMessageKey,
   generatePageLayoutExceptionMessage,
 } from 'src/engine/metadata-modules/page-layout/exceptions/page-layout.exception';
+import { type PageLayoutViewMutationAuthContext } from 'src/engine/metadata-modules/page-layout/types/page-layout-view-mutation-auth-context.type';
 import { fromFlatPageLayoutWithTabsAndWidgetsToPageLayoutDto } from 'src/engine/metadata-modules/page-layout/utils/from-flat-page-layout-with-tabs-and-widgets-to-page-layout-dto.util';
+import { assertCanModifyLockedWidgetBackedViews } from 'src/engine/metadata-modules/page-layout/utils/assert-can-modify-locked-widget-backed-views.util';
+import { PermissionsService } from 'src/engine/metadata-modules/permissions/permissions.service';
 import { isCallerOverridingEntity } from 'src/engine/metadata-modules/utils/is-caller-overriding-entity.util';
 import { resolveFlatEntityOverridableProperties } from 'src/engine/metadata-modules/utils/resolve-flat-entity-overridable-properties.util';
 import { sanitizeOverridableEntityInput } from 'src/engine/metadata-modules/utils/sanitize-overridable-entity-input.util';
@@ -47,6 +50,7 @@ type UpdatePageLayoutWithTabsParams = {
   id: string;
   workspaceId: string;
   input: UpdatePageLayoutWithTabsInput;
+  authContext: PageLayoutViewMutationAuthContext;
 };
 
 @Injectable()
@@ -59,12 +63,14 @@ export class PageLayoutUpdateService {
     private readonly applicationService: ApplicationService,
     private readonly dashboardSyncService: DashboardSyncService,
     private readonly viewService: ViewService,
+    private readonly permissionsService: PermissionsService,
   ) {}
 
   async updatePageLayoutWithTabs({
     id,
     workspaceId,
     input,
+    authContext,
   }: UpdatePageLayoutWithTabsParams): Promise<PageLayoutDTO> {
     const {
       flatPageLayoutMaps,
@@ -180,6 +186,14 @@ export class PageLayoutUpdateService {
       tabsToUpdate,
       tabsToDelete,
       flatPageLayoutWidgetMaps,
+    });
+
+    await assertCanModifyLockedWidgetBackedViews({
+      workspaceId,
+      authContext,
+      flatViewMaps,
+      viewIds: orphanedViewIds,
+      permissionsService: this.permissionsService,
     });
 
     const validateAndBuildResult =

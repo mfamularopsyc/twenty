@@ -4,12 +4,13 @@ import {
   UseInterceptors,
   UsePipes,
 } from '@nestjs/common';
-import { Args, Mutation, Query } from '@nestjs/graphql';
+import { Args, Context, Mutation, Query } from '@nestjs/graphql';
 
 import { PermissionFlagType } from 'twenty-shared/constants';
 
 import { ResolverValidationPipe } from 'src/engine/core-modules/graphql/pipes/resolver-validation.pipe';
 import { WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
+import { AuthUserWorkspaceId } from 'src/engine/decorators/auth/auth-user-workspace-id.decorator';
 import { AuthWorkspace } from 'src/engine/decorators/auth/auth-workspace.decorator';
 import { MetadataResolver } from 'src/engine/api/graphql/graphql-config/decorators/metadata-resolver.decorator';
 import { NoPermissionGuard } from 'src/engine/guards/no-permission.guard';
@@ -118,11 +119,25 @@ export class PageLayoutResolver {
     @Args('id', { type: () => String }) id: string,
     @Args('input') input: UpdatePageLayoutWithTabsInput,
     @AuthWorkspace() workspace: WorkspaceEntity,
+    @AuthUserWorkspaceId({ allowUndefined: true })
+    userWorkspaceId: string | undefined,
+    @Context()
+    context: {
+      req: {
+        apiKey?: { id?: string };
+        application?: { id?: string };
+      };
+    },
   ): Promise<PageLayoutDTO> {
     return this.pageLayoutUpdateService.updatePageLayoutWithTabs({
       id,
       workspaceId: workspace.id,
       input,
+      authContext: {
+        userWorkspaceId,
+        apiKeyId: context.req.apiKey?.id,
+        applicationId: context.req.application?.id,
+      },
     });
   }
 
@@ -131,10 +146,24 @@ export class PageLayoutResolver {
   async resetPageLayoutToDefault(
     @Args('id', { type: () => String }) id: string,
     @AuthWorkspace() workspace: WorkspaceEntity,
+    @AuthUserWorkspaceId({ allowUndefined: true })
+    userWorkspaceId: string | undefined,
+    @Context()
+    context: {
+      req: {
+        apiKey?: { id?: string };
+        application?: { id?: string };
+      };
+    },
   ): Promise<PageLayoutDTO> {
     return this.pageLayoutResetService.resetPageLayoutToDefault({
       id,
       workspaceId: workspace.id,
+      authContext: {
+        userWorkspaceId,
+        apiKeyId: context.req.apiKey?.id,
+        applicationId: context.req.application?.id,
+      },
     });
   }
 
@@ -143,10 +172,24 @@ export class PageLayoutResolver {
   async resetPageLayoutWidgetToDefault(
     @Args('id', { type: () => String }) id: string,
     @AuthWorkspace() workspace: WorkspaceEntity,
+    @AuthUserWorkspaceId({ allowUndefined: true })
+    userWorkspaceId: string | undefined,
+    @Context()
+    context: {
+      req: {
+        apiKey?: { id?: string };
+        application?: { id?: string };
+      };
+    },
   ): Promise<PageLayoutWidgetDTO> {
     return this.pageLayoutResetService.resetPageLayoutWidgetToDefault({
       id,
       workspaceId: workspace.id,
+      authContext: {
+        userWorkspaceId,
+        apiKeyId: context.req.apiKey?.id,
+        applicationId: context.req.application?.id,
+      },
     });
   }
 
@@ -155,10 +198,24 @@ export class PageLayoutResolver {
   async resetPageLayoutTabToDefault(
     @Args('id', { type: () => String }) id: string,
     @AuthWorkspace() workspace: WorkspaceEntity,
+    @AuthUserWorkspaceId({ allowUndefined: true })
+    userWorkspaceId: string | undefined,
+    @Context()
+    context: {
+      req: {
+        apiKey?: { id?: string };
+        application?: { id?: string };
+      };
+    },
   ): Promise<Omit<PageLayoutTabDTO, 'widgets'>> {
     return this.pageLayoutResetService.resetPageLayoutTabToDefault({
       id,
       workspaceId: workspace.id,
+      authContext: {
+        userWorkspaceId,
+        apiKeyId: context.req.apiKey?.id,
+        applicationId: context.req.application?.id,
+      },
     });
   }
 }

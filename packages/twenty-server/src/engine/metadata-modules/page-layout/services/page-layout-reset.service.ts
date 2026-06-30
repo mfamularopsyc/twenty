@@ -37,7 +37,10 @@ import {
   PageLayoutExceptionMessageKey,
   generatePageLayoutExceptionMessage,
 } from 'src/engine/metadata-modules/page-layout/exceptions/page-layout.exception';
+import { type PageLayoutViewMutationAuthContext } from 'src/engine/metadata-modules/page-layout/types/page-layout-view-mutation-auth-context.type';
 import { fromFlatPageLayoutWithTabsAndWidgetsToPageLayoutDto } from 'src/engine/metadata-modules/page-layout/utils/from-flat-page-layout-with-tabs-and-widgets-to-page-layout-dto.util';
+import { assertCanModifyLockedWidgetBackedViews } from 'src/engine/metadata-modules/page-layout/utils/assert-can-modify-locked-widget-backed-views.util';
+import { PermissionsService } from 'src/engine/metadata-modules/permissions/permissions.service';
 import { ViewService } from 'src/engine/metadata-modules/view/services/view.service';
 import { WorkspaceMigrationBuilderException } from 'src/engine/workspace-manager/workspace-migration/exceptions/workspace-migration-builder-exception';
 import { WorkspaceMigrationValidateBuildAndRunService } from 'src/engine/workspace-manager/workspace-migration/services/workspace-migration-validate-build-and-run-service';
@@ -53,19 +56,23 @@ export class PageLayoutResetService {
     private readonly applicationService: ApplicationService,
     private readonly dashboardSyncService: DashboardSyncService,
     private readonly viewService: ViewService,
+    private readonly permissionsService: PermissionsService,
   ) {}
 
   async resetPageLayoutWidgetToDefault({
     id,
     workspaceId,
+    authContext,
   }: {
     id: string;
     workspaceId: string;
+    authContext: PageLayoutViewMutationAuthContext;
   }): Promise<PageLayoutWidgetDTO> {
     const {
       flatPageLayoutWidgetMaps,
       flatViewFieldGroupMaps,
       flatViewFieldMaps,
+      flatViewMaps,
     } =
       await this.workspaceManyOrAllFlatEntityMapsCacheService.getOrRecomputeManyOrAllFlatEntityMaps(
         {
@@ -74,6 +81,7 @@ export class PageLayoutResetService {
             'flatPageLayoutWidgetMaps',
             'flatViewFieldGroupMaps',
             'flatViewFieldMaps',
+            'flatViewMaps',
           ],
         },
       );
@@ -153,6 +161,19 @@ export class PageLayoutResetService {
           viewFieldsToDelete: [],
         };
 
+    await assertCanModifyLockedWidgetBackedViews({
+      workspaceId,
+      authContext,
+      flatViewMaps,
+      permissionsService: this.permissionsService,
+      viewIds: this.collectViewIdsFromFieldsWidgetChildOperations({
+        viewFieldGroupsToUpdate,
+        viewFieldGroupsToDelete,
+        viewFieldsToUpdate,
+        viewFieldsToDelete,
+      }),
+    });
+
     const validateAndBuildResult =
       await this.workspaceMigrationValidateBuildAndRunService.validateBuildAndRunWorkspaceMigration(
         {
@@ -212,15 +233,18 @@ export class PageLayoutResetService {
   async resetPageLayoutTabToDefault({
     id,
     workspaceId,
+    authContext,
   }: {
     id: string;
     workspaceId: string;
+    authContext: PageLayoutViewMutationAuthContext;
   }): Promise<Omit<PageLayoutTabDTO, 'widgets'>> {
     const {
       flatPageLayoutTabMaps,
       flatPageLayoutWidgetMaps,
       flatViewFieldGroupMaps,
       flatViewFieldMaps,
+      flatViewMaps,
     } =
       await this.workspaceManyOrAllFlatEntityMapsCacheService.getOrRecomputeManyOrAllFlatEntityMaps(
         {
@@ -230,6 +254,7 @@ export class PageLayoutResetService {
             'flatPageLayoutWidgetMaps',
             'flatViewFieldGroupMaps',
             'flatViewFieldMaps',
+            'flatViewMaps',
           ],
         },
       );
@@ -289,6 +314,22 @@ export class PageLayoutResetService {
       workspaceCustomApplicationUniversalIdentifier:
         workspaceCustomFlatApplication.universalIdentifier,
       now,
+    });
+
+    await assertCanModifyLockedWidgetBackedViews({
+      workspaceId,
+      authContext,
+      flatViewMaps,
+      permissionsService: this.permissionsService,
+      viewIds: [
+        ...this.collectViewIdsFromFieldsWidgetChildOperations({
+          viewFieldGroupsToUpdate,
+          viewFieldGroupsToDelete,
+          viewFieldsToUpdate,
+          viewFieldsToDelete,
+        }),
+        ...orphanedViewIds,
+      ],
     });
 
     const validateAndBuildResult =
@@ -360,9 +401,11 @@ export class PageLayoutResetService {
   async resetPageLayoutToDefault({
     id,
     workspaceId,
+    authContext,
   }: {
     id: string;
     workspaceId: string;
+    authContext: PageLayoutViewMutationAuthContext;
   }): Promise<PageLayoutDTO> {
     const {
       flatPageLayoutMaps,
@@ -370,6 +413,7 @@ export class PageLayoutResetService {
       flatPageLayoutWidgetMaps,
       flatViewFieldGroupMaps,
       flatViewFieldMaps,
+      flatViewMaps,
     } =
       await this.workspaceManyOrAllFlatEntityMapsCacheService.getOrRecomputeManyOrAllFlatEntityMaps(
         {
@@ -380,6 +424,7 @@ export class PageLayoutResetService {
             'flatPageLayoutWidgetMaps',
             'flatViewFieldGroupMaps',
             'flatViewFieldMaps',
+            'flatViewMaps',
           ],
         },
       );
@@ -472,6 +517,22 @@ export class PageLayoutResetService {
       allViewFieldsToDelete = [...allViewFieldsToDelete, ...viewFieldsToDelete];
       allOrphanedViewIds = [...allOrphanedViewIds, ...orphanedViewIds];
     }
+
+    await assertCanModifyLockedWidgetBackedViews({
+      workspaceId,
+      authContext,
+      flatViewMaps,
+      permissionsService: this.permissionsService,
+      viewIds: [
+        ...this.collectViewIdsFromFieldsWidgetChildOperations({
+          viewFieldGroupsToUpdate: allViewFieldGroupsToUpdate,
+          viewFieldGroupsToDelete: allViewFieldGroupsToDelete,
+          viewFieldsToUpdate: allViewFieldsToUpdate,
+          viewFieldsToDelete: allViewFieldsToDelete,
+        }),
+        ...allOrphanedViewIds,
+      ],
+    });
 
     const validateAndBuildResult =
       await this.workspaceMigrationValidateBuildAndRunService.validateBuildAndRunWorkspaceMigration(
@@ -681,6 +742,31 @@ export class PageLayoutResetService {
     }
 
     return viewIds;
+  }
+
+  private collectViewIdsFromFieldsWidgetChildOperations({
+    viewFieldGroupsToUpdate,
+    viewFieldGroupsToDelete,
+    viewFieldsToUpdate,
+    viewFieldsToDelete,
+  }: {
+    viewFieldGroupsToUpdate: FlatViewFieldGroup[];
+    viewFieldGroupsToDelete: FlatViewFieldGroup[];
+    viewFieldsToUpdate: FlatViewField[];
+    viewFieldsToDelete: FlatViewField[];
+  }): string[] {
+    const viewIds = new Set<string>();
+
+    for (const entity of [
+      ...viewFieldGroupsToUpdate,
+      ...viewFieldGroupsToDelete,
+      ...viewFieldsToUpdate,
+      ...viewFieldsToDelete,
+    ]) {
+      viewIds.add(entity.viewId);
+    }
+
+    return [...viewIds];
   }
 
   private async destroyOrphanedFieldsWidgetViews({
